@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+# Not necessary for packaging but every self-respecting Python
+# package should a) use black and b) fix the WRONG default.
+[tool.black]
+line-length = 88
+target-version = ['py37']
+include = '\.pyi?$'
+exclude = '''
+
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | foo.py           # also separately exclude a file named foo.py in
+                     # the root of the project
+)
+'''
+
+[tool.setuptools_scm]
+fallback_version = "v0.10.0"
+
+[tool.check-manifest]
+ignore-default-rules = false
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+
+log_cli = true
+log_cli_level = "INFO"
+
+log_file = "astronet/tests/pytest.log"
+log_file_level = "INFO"
+
+addopts = [
+    "--ignore=sbin",
+    "--ignore=notebooks",
+    "--ignore-glob=**/viz/*", # Run visualisation tests separately: $ pytest tests/unit/viz/
+    "--color=yes",
+    "--verbose",
+    "--capture=tee-sys",
+    "--showlocals",
+    "--durations=0",
+    "--setup-show",
+    "--cov",
+    "--mpl",
+    "--nbmake",
+    "--log-cli-level=INFO",
+    "--numprocesses=auto",
+    "-ra",
+    # "--exitfirst",
+]
+testpaths = [
+    "astronet/tests",
+]
+filterwarnings = [
+    "ignore::UserWarning",
+    # note the use of single quote below to denote "raw" strings in TOML
+    'ignore:function ham\(\) is deprecated:DeprecationWarning',
+]
+
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
+
+[tool.coverage.run]
+omit = [
+    "astronet/tests/*",
+    "**/constants.py",
+]
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+no_strict_optional = true

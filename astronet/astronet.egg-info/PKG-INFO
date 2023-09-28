@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: astronet
+Version: 0.10.1.dev27+g8cf2bb3.d20230816
+Classifier: Programming Language :: Python :: 3.7
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: Unix
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+License-File: LICENSE
