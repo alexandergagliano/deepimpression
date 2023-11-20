@@ -9,6 +9,7 @@ from typing import Dict, Optional
 import pickle
 import tqdm
 import numpy as np
+import argparse
 
 
 def save_weights(model: nn.Module, filename: str) -> None:
@@ -56,6 +57,10 @@ def update_confusion_matrix(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_file", help="Checkpoint to use", type=str, required=True)
+    args = parser.parse_args()
+
     # Load data from numpy files
     X_train = np.load('X_train_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz')['arr_0']
     y_train = np.load('y_train_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz')['arr_0']
@@ -101,11 +106,24 @@ def main() -> None:
     params['epochs'] = 200
     #params['epochs'] = 10
     #params['epochs'] = 1
-    params['embed_dim'] = 1024
-    params['ff_dim'] = params['embed_dim']*12
+    params['embed_dim'] = 512
+    params['ff_dim'] = params['embed_dim']*6
     params['num_layers'] = 8
     params['num_heads'] = 4
     params['droprate'] = 0.28
+
+    #params = {}
+    ## using the optimally-determined parameters here
+    #params['num_classes'] = num_classes
+    #params['batch_size'] = batch_size
+    #params['epochs'] = 200
+    ##params['epochs'] = 10
+    ##params['epochs'] = 1
+    #params['embed_dim'] = 32
+    #params['ff_dim'] = params['embed_dim']*4
+    #params['num_layers'] = 4
+    #params['num_heads'] = 2
+    #params['droprate'] = 0.28
 
     # --> Number of filters to use in ConvEmbedding block, should be equal to embed_dim
     params['num_filters'] = params['embed_dim']
@@ -127,82 +145,60 @@ def main() -> None:
         droprate=params['droprate'],
     )
 
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} GPUs")
-        model = nn.DataParallel(model)
+    # Set eval mode
+    model.eval()
+
+    # Load weights
+    with open(args.model_file, 'rb') as f:
+        old_state_dict = pickle.loads(f.read())
+        # Remove module prefix since we aren't using DataParallel here.
+        new_state_dict = {k[len("module."):]: v for k, v in old_state_dict.items() if k.startswith("module.")}
+        model.load_state_dict(new_state_dict)
 
     model.to(device)
 
-    params['learning_rate'] = 1.e-6
     loss = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights).to(device))
-    opt = optim.Adam(model.parameters(), lr=params['learning_rate'])
 
-    # Set training mode
-    model.train()
+    # Compute loss and accuracy over validation set
+    all_loss = 0.
+    confusion_matrix = torch.zeros((params['num_classes'], params['num_classes']))
+    for X, Y in tqdm.tqdm(test_dl):
+        # Move to device
+        X, Y = X.to(device), Y.to(device)
 
-    # Training loop
-    for epoch in range(params["epochs"]):
-        # Train
-        all_loss = 0.
-        # confusion matrix
-        confusion_matrix = torch.zeros((params['num_classes'], params['num_classes']))
-        #weighted_confusion_matrix = torch.zeros((params['num_classes'], params['num_classes']))
+        # Forward pass and loss computation
+        outs = model(X)
+        loss_val = loss(outs, Y.float())
+        all_loss += loss_val.item()
 
-        for X, Y in tqdm.tqdm(train_dl):
-            # Move to device
-            X, Y = X.to(device), Y.to(device)
+        # Fill confusion matrix
+        predicted_classes = outs.argmax(1)
+        true_classes = Y.argmax(1)
+        update_confusion_matrix(confusion_matrix, true_classes, predicted_classes)
 
-            # Forward pass
-            outs = model(X)
-            loss_val = loss(outs, Y.float())
-            all_loss += loss_val.item()
+    test_loss = all_loss/len(test_dl)
+    test_metrics = metrics(confusion_matrix)
 
-            # Fill confusion matrix
-            predicted_classes = outs.argmax(1)
-            true_classes = Y.argmax(1)
-            update_confusion_matrix(confusion_matrix, true_classes, predicted_classes)
+    full_message = "Test: "
+    full_message += "Loss: {:.4f}, ".format(test_loss)
+    for key, val in test_metrics.items():
+        full_message += "{}: {:.4f}, ".format(key, val)
+    print(full_message)
+    # Normalize confusion matrix with respect to first index
+    confusion_matrix_norm1 = torch.zeros((params['num_classes'], params['num_classes']))
+    for i in range(params['num_classes']):
+        confusion_matrix_norm1[i] = confusion_matrix[i] / confusion_matrix[i].sum()
+    confusion_matrix_norm2 = torch.zeros((params['num_classes'], params['num_classes']))
+    # Normalize confusion matrix with respect to second index
+    for i in range(params['num_classes']):
+        confusion_matrix_norm2[:, i] = confusion_matrix[:, i] / confusion_matrix[:, i].sum()
+    print("confusion_matrix:")
+    print(confusion_matrix)
+    print("confusion_matrix_norm1:")
+    print(confusion_matrix_norm1)
+    print("confusion_matrix_norm2:")
+    print(confusion_matrix_norm2)
 
-            # Backwards pass and optimization
-            opt.zero_grad()
-            loss_val.backward()
-            opt.step()
-
-        train_loss = all_loss/len(train_dl)
-        train_metrics = metrics(confusion_matrix)
-
-        # Compute loss and accuracy over validation set
-        all_loss = 0.
-        confusion_matrix = torch.zeros((params['num_classes'], params['num_classes']))
-        for X, Y in test_dl:
-            # Move to device
-            X, Y = X.to(device), Y.to(device)
-
-            # Forward pass and loss computation
-            outs = model(X)
-            loss_val = loss(outs, Y.float())
-            all_loss += loss_val.item()
-
-            # Fill confusion matrix
-            predicted_classes = outs.argmax(1)
-            true_classes = Y.argmax(1)
-            update_confusion_matrix(confusion_matrix, true_classes, predicted_classes)
-
-        test_loss = all_loss/len(test_dl)
-        test_metrics = metrics(confusion_matrix)
-
-        full_message = f"Epoch {epoch+1}/{params['epochs']}: "
-        full_message += "Training: "
-        full_message += "Loss: {:.4f}, ".format(train_loss)
-        for key, val in train_metrics.items():
-            full_message += "{}: {:.4f}, ".format(key, val)
-        full_message += "Test: "
-        full_message += "Loss: {:.4f}, ".format(test_loss)
-        for key, val in test_metrics.items():
-            full_message += "{}: {:.4f}, ".format(key, val)
-        print(full_message)
-
-        # Save model to disk
-        save_weights(model, f"t2model_torch_{epoch+1:03d}.pth")
 
 
 if __name__ == "__main__":
