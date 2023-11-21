@@ -91,6 +91,7 @@ class T2Model(nn.Module):
         num_filters,
         num_layers,
         droprate,
+        num_classes,
         num_aux_feats=0,
         add_aux_feats_to="M",
         **kwargs,
@@ -103,14 +104,14 @@ class T2Model(nn.Module):
         self.num_filters = num_filters
         self.num_layers = num_layers
         self.droprate = droprate
+        self.num_classes = num_classes
         self.num_aux_feats = num_aux_feats
         self.add_aux_feats_to = add_aux_feats_to
 
-        num_classes = self.input_dim[0]
         self.sequence_length = input_dim[1] + self.num_aux_feats if self.add_aux_feats_to == "L" else input_dim[1]
         ic(self.sequence_length)
 
-        self.embedding = ConvEmbedding(in_channels=input_dim[1], num_filters=self.num_filters)  # A custom class to be defined
+        self.embedding = ConvEmbedding(in_channels=input_dim[0], num_filters=self.num_filters)  # A custom class to be defined
         self.pos_encoding = PositionalEncoding(max_steps=self.sequence_length, max_dims=self.embed_dim)  # A custom class to be defined
 
         self.encoder = nn.ModuleList([
