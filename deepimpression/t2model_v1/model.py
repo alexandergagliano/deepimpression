@@ -7,9 +7,9 @@ from mk_ic import install
 install()
 
 
-class ConvEmbedding_AG(nn.Module):
+class ConvEmbedding(nn.Module):
     def __init__(self, in_channels, num_filters):
-        super(ConvEmbedding_AG, self).__init__()
+        super(ConvEmbedding, self).__init__()
         self.conv1d = nn.Conv1d(
             in_channels=in_channels,  # This might need to be adjusted depending on the input size
             out_channels=num_filters,
@@ -40,9 +40,9 @@ class PositionalEncoding(nn.Module):
         # inputs is of shape (batch, sequence_length, model_dim)
         return inputs + self.positional_embedding[:, :inputs.size(1), :]
 
-class TransformerBlock_AG(nn.Module):
+class TransformerBlock(nn.Module):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
-        super(TransformerBlock_AG, self).__init__()
+        super(TransformerBlock, self).__init__()
         self.att = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
         self.ffn = nn.Sequential(
             nn.Linear(embed_dim, ff_dim),
@@ -74,7 +74,7 @@ def compute_mask(data, mask_value=0.):
     return torch.all(torch.eq(data, mask_value), -2)
 
 
-class T2Model_AG(nn.Module):
+class T2Model(nn.Module):
     # TODO: Update docstrings
     """Time-Transformer with Multi-headed.
     embed_dim --> Embedding size for each token
@@ -89,14 +89,13 @@ class T2Model_AG(nn.Module):
         num_heads,
         ff_dim,
         num_filters,
-        num_classes,
         num_layers,
         droprate,
         num_aux_feats=0,
         add_aux_feats_to="M",
         **kwargs,
     ):
-        super(T2Model_AG, self).__init__()
+        super(T2Model, self).__init__()
         self.input_dim = input_dim
         self.embed_dim = embed_dim
         self.num_heads = num_heads
@@ -107,46 +106,38 @@ class T2Model_AG(nn.Module):
         self.num_aux_feats = num_aux_feats
         self.add_aux_feats_to = add_aux_feats_to
 
-        self.num_classes = num_classes
-        self.sequence_length = input_dim[2] + self.num_aux_feats if self.add_aux_feats_to == "L" else input_dim[2]
+        num_classes = self.input_dim[0]
+        self.sequence_length = input_dim[1] + self.num_aux_feats if self.add_aux_feats_to == "L" else input_dim[1]
         ic(self.sequence_length)
 
-        self.embedding = ConvEmbedding_AG(in_channels=input_dim[1], num_filters=self.num_filters)  # A custom class to be defined
+        self.embedding = ConvEmbedding(in_channels=input_dim[1], num_filters=self.num_filters)  # A custom class to be defined
         self.pos_encoding = PositionalEncoding(max_steps=self.sequence_length, max_dims=self.embed_dim)  # A custom class to be defined
 
         self.encoder = nn.ModuleList([
-            TransformerBlock_AG(self.embed_dim, self.num_heads, self.ff_dim) for _ in range(num_layers)  # A custom class to be defined
+            TransformerBlock(self.embed_dim, self.num_heads, self.ff_dim) for _ in range(num_layers)  # A custom class to be defined
         ])
 
         self.pooling = nn.AdaptiveAvgPool1d(1)
         self.dropout1 = nn.Dropout(self.droprate)
-        self.classifier = nn.Linear(self.embed_dim, self.num_classes)
+        self.classifier = nn.Linear(self.embed_dim, num_classes)
 
     def forward(self, x, training=None):
-        # Implement the forward pass
-        if isinstance(x, torch.Tensor):
-            # Compute key_padding_mask
-            key_padding_mask = compute_mask(x)
+        # Compute key_padding_mask
+        key_padding_mask = compute_mask(x)
 
-            # Assume x is the input tensor
-            x = self.embedding(x)
-            x = self.pos_encoding(x)
-            # conv layer expects channels first, but attention expects channels last
-            x = x.swapaxes(1, 2)
+        # Assume x is the input tensor
+        x = self.embedding(x)
+        x = self.pos_encoding(x)
+        # conv layer expects channels first, but attention expects channels last
+        x = x.swapaxes(1, 2)
 
-            for layer in self.encoder:
-                x = layer(x, key_padding_mask=key_padding_mask)
+        for layer in self.encoder:
+            x = layer(x, key_padding_mask=key_padding_mask)
 
-            # Swap axes back
+        # Swap axes back
 
-            x = x.mean(dim=1) if self.pooling is None else self.pooling(x.transpose(1, 2)).squeeze(-1)
-            x = self.dropout1(x)
-            x = self.classifier(x)
-
-        else:
-            # Handle the case where x is a list or a dict
-            # This part would need to be implemented based on how the inputs are expected to be structured in PyTorch
-            pass
+        x = x.mean(dim=1) if self.pooling is None else self.pooling(x.transpose(1, 2)).squeeze(-1)
+        x = self.dropout1(x)
+        x = self.classifier(x)
 
         return x
-
