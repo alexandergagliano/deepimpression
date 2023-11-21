@@ -1,5 +1,5 @@
-from t2model_torch import T2Model_AG
-from torch_data import CustomDataset
+from deepimpression.t2model_v1.model import T2Model_AG
+from deepimpression.data import CustomDataset
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
