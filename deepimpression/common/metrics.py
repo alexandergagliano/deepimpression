@@ -1,9 +1,9 @@
 from typing import Dict
 import torch
-from typing import Optional
+from typing import Optional, Dict
 
 
-def metrics(confusion_matrix: torch.Tensor) -> dict[str, float]:
+def metrics(confusion_matrix: torch.Tensor) -> Dict[str, float]:
     # Compute metrics from the confusion matrix. format is: [true class, predicted class]
     if confusion_matrix.ndim != 2 or confusion_matrix.size(0) != confusion_matrix.size(1):
         raise ValueError("Confusion matrix must be a square matrix.")

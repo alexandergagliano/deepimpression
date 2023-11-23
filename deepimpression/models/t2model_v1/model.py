@@ -71,6 +71,7 @@ def compute_mask(data, mask_value=0.):
     # Assuming data is of shape (batch, sequence_length, model_dim)
     #return torch.all(torch.eq(data, mask_value), -1)
     # Assuming data is of shape (batch, model_dim, sequence_length)
+    ic(type(data), type(data[0]), len(data), type(mask_value))
     return torch.all(torch.eq(data, mask_value), -2)
 
 
@@ -84,14 +85,14 @@ class T2Model(nn.Module):
 
     def __init__(
         self,
-        input_dim,
-        embed_dim,
-        num_heads,
-        ff_dim,
-        num_filters,
-        num_layers,
-        droprate,
-        num_classes,
+        input_dim=None,
+        embed_dim=None,
+        num_heads=None,
+        ff_dim=None,
+        num_filters=None,
+        num_layers=None,
+        droprate=None,
+        num_classes=None,
         num_aux_feats=0,
         add_aux_feats_to="M",
         **kwargs,
@@ -124,6 +125,7 @@ class T2Model(nn.Module):
 
     def forward(self, x, training=None):
         # Compute key_padding_mask
+        ic(type(x), type(x[0]), x[0].shape, type(x[1]), x[1].shape)
         key_padding_mask = compute_mask(x)
 
         # Assume x is the input tensor
@@ -142,3 +144,12 @@ class T2Model(nn.Module):
         x = self.classifier(x)
 
         return x
+
+def T2ModelFunc(params):
+    kwargs = params['model'].copy()
+    if hasattr(kwargs, 'func'):
+        del kwargs['func']
+    if hasattr(kwargs, 'class'):
+        del kwargs['class']
+    ic(kwargs)
+    return T2Model(**kwargs)

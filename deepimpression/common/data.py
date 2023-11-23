@@ -6,7 +6,7 @@ import numpy as np
 class CustomDataset(Dataset):
     def __init__(self, data, labels):
         self.data = torch.from_numpy(data).float()
-        self.labels = torch.from_numpy(labels).long()
+        self.labels = torch.from_numpy(labels).float()
 
     def __len__(self):
         return len(self.data)

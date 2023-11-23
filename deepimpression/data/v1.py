@@ -4,15 +4,15 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
 
-def get_train_data_loader(params):
-    return get_data_loader(params['train_input'])
+def get_train_data_loader(**params):
+    return get_data_loader(**params['train_input'])
 
 
-def get_eval_data_loader(params):
-    return get_data_loader(params['eval_input'])
+def get_eval_data_loader(**params):
+    return get_data_loader(**params['eval_input'])
 
 
-def get_data_loader(params):
+def get_data_loader(**params):
     ## Load data from numpy files
     X = np.load(params['x'])['arr_0']
     y = np.load(params['y'])['arr_0']
@@ -22,6 +22,8 @@ def get_data_loader(params):
 
     ## binarize labels 
     y = OneHotEncoder(max_categories=3, sparse_output=False).fit_transform(y.reshape(-1, 1))
+
+    ic(y.shape, y.dtype)
 
     batch_size = params['batch_size']
 
