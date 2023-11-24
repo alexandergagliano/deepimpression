@@ -1,0 +1,36 @@
+train_input:
+  func: 'deepimpression.data.v2.get_train_data_loader'
+  x: 'X_train_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
+  y: 'y_train_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
+  batch_size: 32
+  shuffle: True
+
+eval_input:
+  func: 'deepimpression.data.v2.get_eval_data_loader'
+  x: 'X_test_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
+  y: 'y_test_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
+  batch_size: 32
+  shuffle: False
+
+model:
+  class: 'deepimpression.models.t2model_v2.model.T2Model'
+  input_dim: [150, 12]
+  num_classes: 3
+  embed_dim: 32
+  ff_dim: 128
+  num_filters: 32
+  num_layers: 4
+  num_heads: 2
+  droprate: 0.28
+
+train_config:
+  func: 'deepimpression.train_func.v1.train' 
+  loss:
+    class: 'torch.nn.CrossEntropyLoss'
+
+  opt:
+    class: 'torch.optim.Adam'
+    lr: 1.e-6
+
+  epochs: 200
+  num_classes: 3

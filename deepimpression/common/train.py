@@ -20,8 +20,8 @@ def main() -> None:
         modeldir=args.modeldir)
     params['train_config']['modeldir'] = args.modeldir
 
-    train_dl = deserialize(params['train_input']['func'])(params)
-    test_dl = deserialize(params['eval_input']['func'])(params)
+    train_dl = deserialize(params['train_input']['func'])(**params)
+    test_dl = deserialize(params['eval_input']['func'])(**params)
 
     train_func = deserialize(params['train_config']['func'])
 
