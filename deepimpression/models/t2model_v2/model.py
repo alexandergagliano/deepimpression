@@ -30,7 +30,9 @@ class PositionalEncoding(nn.Module):
         #ic(inputs.shape, self.positional_embedding.shape)
         pos = self.positional_embedding[:, :inputs.size(1), :]
         #ic(pos.shape)
-        result = inputs + pos
+        #result = inputs + pos
+        result = inputs # to help Cerebras AMP properly cast weights
+        result += pos
         #ic(result.shape)
         return result
         raise RuntimeError("Early Stop")

@@ -1,20 +1,20 @@
 train_input:
-  func: 'deepimpression.data.v1.get_train_data_loader'
+  func: 'deepimpression.data.v2.get_train_data_loader'
   x: '/projects/bblg/mkrafcz2/deepimpression/X_train_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
   y: '/projects/bblg/mkrafcz2/deepimpression/y_train_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
   batch_size: 32
   shuffle: True
 
 eval_input:
-  func: 'deepimpression.data.v1.get_eval_data_loader'
+  func: 'deepimpression.data.v2.get_eval_data_loader'
   x: '/projects/bblg/mkrafcz2/deepimpression/X_test_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
   y: '/projects/bblg/mkrafcz2/deepimpression/y_test_ZTF_Sim_FullSliced_Padded_0pt2GP_hostPhotTrue_30Cut.npz'
   batch_size: 32
   shuffle: False
 
 model:
-  class: 'deepimpression.models.t2model_v1.model.T2Model'
-  input_dim: [12, 150]
+  class: 'deepimpression.models.t2model_v2.model.T2Model'
+  input_dim: [150, 12]
   num_classes: 3
   embed_dim: 32
   ff_dim: 128
