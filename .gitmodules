@@ -1,0 +1,3 @@
+[submodule "modelzoo"]
+	path = modelzoo
+	url = git@github.com:ncsa/modelzoo
