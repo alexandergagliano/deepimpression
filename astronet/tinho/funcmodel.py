@@ -93,22 +93,16 @@ def build_model(
     # classifier = layers.Dense(num_classes, activation="softmax")
 
     ##############################################################
-    # training = tf.keras.backend.learning_phase()
-    # log.info(f"TRAINING STATE: {training}")
-
     # If not a list then inputs are of type tensor: tf.is_tensor(inputs) == True
     if tf.is_tensor(inputs):
         x = ConvEmbedding(num_filters=num_filters, input_shape=input_dim)(inputs)
         x = PositionalEncoding(max_steps=sequence_length, max_dims=embed_dim)(x)
 
-        x = TransformerBlock(embed_dim, num_heads, ff_dim)(
-            x, training=tf.keras.backend.learning_phase()
-        )
+        x = TransformerBlock(embed_dim, num_heads, ff_dim)(x)
 
         x = layers.GlobalAveragePooling1D()(x)
 
-        if tf.keras.backend.learning_phase():
-            x = layers.Dropout(droprate)(x, training=tf.keras.backend.learning_phase())
+        x = layers.Dropout(droprate)(x)
 
         classifier = cluster_weights(
             layers.Dense(num_classes, activation="softmax"), **clustering_params
@@ -152,13 +146,10 @@ def build_model(
             x
         )  # X <- X + P, where X in L x d
 
-        x = TransformerBlock(embed_dim, num_heads, ff_dim)(
-            x, training=tf.keras.backend.learning_phase()
-        )
+        x = TransformerBlock(embed_dim, num_heads, ff_dim)(x)
 
         x = layers.GlobalAveragePooling1D()(x)
-        if tf.keras.backend.learning_phase():
-            x = layers.Dropout(droprate)(x, training=tf.keras.backend.learning_phase())
+        x = layers.Dropout(droprate)(x)
 
         # classifier = layers.Dense(num_classes, activation="softmax")(x)
         classifier = cluster_weights(

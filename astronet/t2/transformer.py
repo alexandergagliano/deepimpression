@@ -238,7 +238,7 @@ class TransformerBlock(PrunableClusterableLayer):
         )
         return config
 
-    def call(self, inputs, training):
+    def call(self, inputs, training=None):
 
         # Sublayer 1
         attn_output = self.att(inputs)  # (batch_size, input_seq_len, d_model)
@@ -291,10 +291,10 @@ class TransformerBlock_AG(PrunableClusterableLayer):
         )
         return config
 
-    def call(self, inputs, training):#, mask):
+    def call(self, inputs, training=None):  # , mask):
         # Sublayer 1
         inputs = self.masking_layer(inputs)
-        attn_output = self.att(inputs, inputs, key=inputs)  # (batch_size, input_seq_len, d_model)
+        attn_output = self.att(query=inputs, value=inputs, key=inputs, training=training)  # (batch_size, input_seq_len, d_model)
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.layernorm1(
             inputs + attn_output
